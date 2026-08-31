@@ -1,0 +1,10 @@
+VALT OS PROPRIETARY SOFTWARE LICENSE
+Copyright (c) 2026 Valt Systems. All Rights Reserved.
+
+Permission is hereby granted to download and use executable binaries of Valt OS 
+for personal or authorized evaluation purposes only.
+
+You may NOT:
+1. Decompile, reverse engineer, disassemble, or extract source code from this application.
+2. Modify, redistribute, sell, lease, or create derivative works based upon this software.
+3. Remove or alter any proprietary notices or copyright labels on the software.
