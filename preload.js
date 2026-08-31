@@ -1,3 +1,14 @@
+/*
+ * Copyright (c) 2026 Valt Systems. All Rights Reserved.
+ *
+ * This software and source code are protected by international copyright laws.
+ * Unauthorized copying, decompilation, distribution, or reverse engineering
+ * of any part of this system is strictly prohibited.
+ */
+
+
+
+
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('valtAPI', {
