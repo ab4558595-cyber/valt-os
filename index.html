@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Valt OS</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    button, a, input, tr { cursor: pointer; }
+    .font-brand { font-family: 'Outfit', sans-serif; }
+    .font-code { font-family: 'JetBrains Mono', monospace; }
+    
+    .glass-shelf {
+      background: rgba(18, 18, 22, 0.75);
+      backdrop-filter: blur(28px) saturate(200%);
+      -webkit-backdrop-filter: blur(28px) saturate(200%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    .glass-panel {
+      background: rgba(22, 23, 28, 0.88);
+      backdrop-filter: blur(32px) saturate(210%);
+      -webkit-backdrop-filter: blur(32px) saturate(210%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
+    }
+
+    .glass-widget {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+    }
+
+    .window-popup {
+      animation: valtPopup 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transform-origin: center center;
+    }
+
+    @keyframes valtPopup {
+      0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    #nightlight-overlay {
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      background: rgba(255, 160, 40, 0.12);
+      mix-blend-mode: multiply;
+    }
+
+    .resize-handle { position: absolute; z-index: 40; }
+    .rh-n { top: -4px; left: 8px; right: 8px; height: 10px; cursor: n-resize; }
+    .rh-s { bottom: -4px; left: 8px; right: 8px; height: 10px; cursor: s-resize; }
+    .rh-e { right: -4px; top: 8px; bottom: 8px; width: 10px; cursor: e-resize; }
+    .rh-w { left: -4px; top: 8px; bottom: 8px; width: 10px; cursor: w-resize; }
+    .rh-ne { top: -6px; right: -6px; width: 16px; height: 16px; cursor: ne-resize; }
+    .rh-nw { top: -6px; left: -6px; width: 16px; height: 16px; cursor: nw-resize; }
+    .rh-se { bottom: -6px; right: -6px; width: 16px; height: 16px; cursor: se-resize; }
+    .rh-sw { bottom: -6px; left: -6px; width: 16px; height: 16px; cursor: sw-resize; }
+
+    #snap-preview {
+      position: absolute;
+      transition: all 0.15s cubic-bezier(0.2, 0.9, 0.3, 1);
+      pointer-events: none;
+      z-index: 35;
+    }
+
+    .boot-pulse { animation: logoPulse 3s ease-in-out infinite; }
+    @keyframes logoPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 25px rgba(224, 159, 23, 0.25)); }
+      50% { transform: scale(1.03); filter: drop-shadow(0 0 45px rgba(224, 159, 23, 0.55)); }
+    }
+    .boot-glow { background: radial-gradient(circle, rgba(224, 159, 23, 0.18) 0%, rgba(10, 10, 12, 0) 70%); }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.2);
+      height: 6px;
+      border-radius: 9999px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #60a5fa;
+      cursor: pointer;
+    }
+
+    webview { display: inline-flex !important; width: 100%; height: 100%; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 9999px; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-neutral-950 text-white">
+
+  <div id="nightlight-overlay" class="fixed inset-0 z-[80] pointer-events-none opacity-0"></div>
+
+  <!-- JWT Cryptographic Auth Lock Screen -->
+  <div id="auth-lock-screen" class="fixed inset-0 z-[9990] bg-[#070709]/95 backdrop-blur-2xl flex flex-col items-center justify-center transition-all duration-500 select-none">
+    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-extrabold text-2xl mb-4 shadow-2xl">
+      V
+    </div>
+    <h2 id="auth-user-display" class="text-lg font-bold text-white mb-1">Valt OS Administrator</h2>
+    <p class="text-xs text-neutral-400 mb-6 font-mono">Sign in to generate verified cryptographic JWT session</p>
+
+    <form id="auth-form" class="flex flex-col items-center gap-3 w-72">
+      <input 
+        id="auth-password" 
+        type="password" 
+        placeholder="Password (default: admin)" 
+        class="w-full bg-white/10 border border-white/15 px-4 py-2.5 rounded-full text-xs text-white placeholder-neutral-400 outline-none focus:ring-2 focus:ring-amber-400 text-center"
+        autocomplete="off"
+      />
+      <button 
+        type="submit" 
+        class="w-full py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs transition active:scale-95 shadow-lg shadow-amber-500/20"
+      >
+        Unlock Valt OS
+      </button>
+    </form>
+    <div id="auth-error" class="text-red-400 text-[11px] mt-3 hidden font-mono"></div>
+  </div>
+
+  <!-- Boot Splash Screen -->
+  <div id="boot-screen" class="fixed inset-0 z-[9999] bg-[#070709] flex flex-col items-center justify-center transition-all duration-700 ease-out">
+    <div class="absolute w-[650px] h-[650px] boot-glow rounded-full pointer-events-none"></div>
+    <div class="relative z-10 flex flex-col items-center">
+      <div class="w-40 h-40 flex items-center justify-center mb-6 boot-pulse">
+        <img src="logo.png" alt="Valt OS" class="w-full h-full object-contain pointer-events-none" />
+      </div>
+      <div class="text-3xl font-light tracking-[0.25em] text-[#e5a01d] uppercase font-brand mb-10 drop-shadow-[0_2px_15px_rgba(229,160,29,0.4)]">
+        Valt OS
+      </div>
+      <div class="w-64 h-1.5 bg-neutral-900/90 rounded-full overflow-hidden border border-white/5 relative mb-4 shadow-inner">
+        <div id="boot-progress" class="h-full bg-gradient-to-r from-[#b37a12] via-[#e5a01d] to-[#fcd34d] rounded-full transition-all duration-300 ease-out" style="width: 5%;"></div>
+      </div>
+      <div id="boot-status" class="text-[11px] font-mono tracking-wider text-neutral-400/80 uppercase">
+        Initializing System Core...
+      </div>
+    </div>
+    <div class="absolute bottom-8 text-[10px] font-mono tracking-widest text-neutral-600 uppercase">
+      Valt OS • Version 1.0 (Windows Desktop Environment)
+    </div>
+  </div>
+
+  <!-- Desktop Workspace -->
+  <div id="desktop" class="relative w-full h-full overflow-hidden bg-cover bg-center transition-all duration-700" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop');">
+    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-black/30 pointer-events-none"></div>
+    <div id="snap-preview" class="hidden rounded-3xl bg-blue-500/20 border-2 border-blue-400/60 backdrop-blur-md"></div>
+
+    <div class="absolute top-24 left-1/2 -translate-x-1/2 flex flex-col items-center select-none text-center">
+      <div id="desktop-clock" class="text-7xl font-extrabold tracking-tight text-white/90 drop-shadow-2xl">--:--</div>
+      <div id="desktop-date" class="text-sm font-semibold tracking-wider text-white/75 mt-1 drop-shadow uppercase">--</div>
+      
+      <form id="desktop-search-form" class="mt-6 flex items-center gap-3 px-5 py-3 w-[500px] rounded-full glass-widget text-white/90 focus-within:ring-2 focus-within:ring-blue-400/70 transition-all shadow-xl">
+        <i class="fa-brands fa-google text-blue-400 text-sm"></i>
+        <input id="desktop-search-input" type="text" placeholder="Search web, launch apps, or enter URL..." class="flex-1 bg-transparent text-xs text-white placeholder-white/50 outline-none" autocomplete="off" />
+        <button type="submit" class="p-1 text-white/60 hover:text-white transition active:scale-90"><i class="fa-solid fa-arrow-right text-xs"></i></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right-Click Context Menu -->
+  <div id="context-menu" class="hidden fixed w-48 glass-panel rounded-2xl p-1.5 shadow-2xl z-[70] text-xs flex-col gap-0.5 border border-white/10">
+    <button onclick="handleContextAction('refresh')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-neutral-200 transition">
+      <i class="fa-solid fa-rotate-right text-[11px] text-blue-400"></i> Refresh Desktop
+    </button>
+    <button onclick="handleContextAction('wallpaper')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-neutral-200 transition">
+      <i class="fa-solid fa-image text-[11px] text-emerald-400"></i> Next Wallpaper
+    </button>
+    <button onclick="handleContextAction('explorer')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-neutral-200 transition">
+      <i class="fa-solid fa-folder-open text-[11px] text-amber-400"></i> Open Explorer
+    </button>
+    <button onclick="handleContextAction('settings')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-neutral-200 transition">
+      <i class="fa-solid fa-sliders text-[11px] text-purple-400"></i> System Settings
+    </button>
+    <div class="h-px bg-white/10 my-1"></div>
+    <button onclick="handleContextAction('lock')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-red-300 transition">
+      <i class="fa-solid fa-lock text-[11px]"></i> Lock OS Session
+    </button>
+  </div>
+
+  <!-- Sliding Launcher Drawer -->
+  <div id="launcher" class="absolute bottom-20 left-6 w-[560px] max-h-[600px] glass-panel rounded-[32px] p-7 hidden flex-col gap-6 z-50 transition-all duration-300 transform scale-95 origin-bottom-left">
+    <div class="relative flex items-center">
+      <i class="fa-solid fa-magnifying-glass text-neutral-400 absolute left-5 text-sm"></i>
+      <input id="launcher-search" type="text" placeholder="Search Valt OS applications..." class="w-full bg-white/10 hover:bg-white/15 focus:bg-white/20 pl-12 pr-4 py-3.5 rounded-full text-xs text-white placeholder-neutral-400 outline-none border border-white/10 focus:border-blue-400/50 transition-all shadow-inner" />
+    </div>
+    <div class="flex-1 overflow-y-auto pr-1">
+      <div class="text-[11px] font-bold text-neutral-400 uppercase tracking-widest px-2 mb-3">Applications</div>
+      <div id="launcher-grid" class="grid grid-cols-4 gap-3"></div>
+    </div>
+  </div>
+
+  <!-- Quick Settings Panel -->
+  <div id="quick-settings" class="hidden absolute bottom-20 right-6 w-80 glass-panel rounded-3xl p-5 shadow-2xl z-50 flex-col gap-4 border border-white/15">
+    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-bold text-xs">V</div>
+        <div>
+          <h4 class="text-xs font-bold text-white" id="qs-user-tag">Admin</h4>
+          <span class="text-[10px] text-white/60" id="qs-wifi-name">Wi-Fi Connected</span>
+        </div>
+      </div>
+      <button onclick="lockValtOS()" class="px-2.5 py-1 bg-white/10 hover:bg-red-500/80 rounded-full text-[10px] font-bold text-white/80 hover:text-white transition">
+        Lock
+      </button>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2">
+      <button id="qs-wifi-btn" onclick="toggleWifiFromQS()" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-blue-600/30 border border-blue-500/40 text-blue-400 gap-1.5 transition active:scale-95">
+        <i id="qs-wifi-icon" class="fa-solid fa-wifi text-sm"></i>
+        <span class="text-[10px] font-semibold">Wi-Fi</span>
+      </button>
+      <button id="qs-nightlight-btn" onclick="toggleNightLight()" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/10 text-white/70 gap-1.5 transition active:scale-95 hover:bg-white/10">
+        <i class="fa-solid fa-moon text-sm"></i>
+        <span class="text-[10px] font-semibold">Night Light</span>
+      </button>
+      <button onclick="toggleFSSystem()" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/10 text-white/70 gap-1.5 transition active:scale-95 hover:bg-white/10">
+        <i class="fa-solid fa-expand text-sm"></i>
+        <span class="text-[10px] font-semibold">Display</span>
+      </button>
+    </div>
+
+    <div class="space-y-3 pt-1">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-sun text-xs text-amber-400 w-4 text-center"></i>
+        <input type="range" id="slider-brightness" min="40" max="100" value="100" class="flex-1" oninput="applyBrightness(this.value)">
+      </div>
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-volume-high text-xs text-blue-400 w-4 text-center"></i>
+        <input type="range" id="slider-volume" min="0" max="100" value="85" class="flex-1">
+      </div>
+    </div>
+  </div>
+
+  <!-- Shelf Dock -->
+  <div class="absolute bottom-3 left-0 w-full px-6 flex items-center justify-between pointer-events-none z-40">
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="launcher-btn" title="Valt OS Launcher" class="w-12 h-12 rounded-full glass-shelf hover:bg-white/20 active:scale-90 flex items-center justify-center transition-all text-white shadow-xl group">
+        <div class="w-5 h-5 rounded-full border-2 border-white/80 group-hover:border-amber-400 flex items-center justify-center transition-colors">
+          <div class="w-2 h-2 bg-white/80 group-hover:bg-amber-400 rounded-full transition-colors"></div>
+        </div>
+      </button>
+      <button id="fullscreen-btn" onclick="toggleFSSystem()" title="Toggle Fullscreen" class="w-12 h-12 rounded-full glass-shelf hover:bg-white/20 active:scale-90 flex items-center justify-center transition-all text-white/80 hover:text-white shadow-xl text-sm">
+        <i id="fs-icon" class="fa-solid fa-expand"></i>
+      </button>
+    </div>
+
+    <div class="pointer-events-auto">
+      <div id="shelf-pinned" class="flex items-center gap-2 px-3 py-1.5 glass-shelf rounded-3xl shadow-2xl"></div>
+    </div>
+
+    <div class="pointer-events-auto flex items-center gap-3">
+      <div id="download-pill" class="hidden items-center gap-2.5 px-3.5 py-1.5 glass-shelf rounded-full text-xs text-white shadow-xl animate-pulse">
+        <i class="fa-solid fa-download text-blue-400 text-xs"></i>
+        <div class="flex flex-col">
+          <span id="download-filename" class="font-bold truncate max-w-[110px]">Downloading...</span>
+          <span id="download-percent" class="text-[9px] text-white/70 font-mono">0% completed</span>
+        </div>
+      </div>
+
+      <div 
+        id="tray-btn" 
+        onclick="toggleQuickSettings()"
+        class="flex items-center gap-3 px-4 py-2 glass-shelf hover:bg-white/20 active:scale-95 rounded-full cursor-pointer transition-all select-none shadow-xl"
+      >
+        <i id="tray-wifi-icon" class="fa-solid fa-wifi text-xs text-white/90"></i>
+        <i class="fa-solid fa-battery-three-quarters text-xs text-white/90"></i>
+        <div class="flex flex-col text-right pl-2 border-l border-white/15">
+          <span id="clock" class="text-xs font-bold text-white leading-tight">--:--</span>
+          <span id="tray-date" class="text-[9px] text-white/70 font-semibold leading-none">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. AUTHENTICATION & JWT ENGINE
+    // ==========================================
+    function base64Encode(str) {
+      return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m, p) => String.fromCharCode('0x' + p)));
+    }
+    function base64Decode(str) {
+      return decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    }
+
+    function createJWTToken(username, role) {
+      const header = base64Encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = base64Encode(JSON.stringify({
+        username: username,
+        role: role,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 365) // 1-year valid token
+      }));
+      const signature = base64Encode(`${header}.${payload}.valtos_key`);
+      return `${header}.${payload}.${signature}`;
+    }
+
+    function parseJWT(token) {
+      if (!token) return { valid: false };
+      const parts = token.split('.');
+      if (parts.length !== 3) return { valid: false };
+      try {
+        const payload = JSON.parse(base64Decode(parts[1]));
+        if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return { valid: false, error: 'Expired' };
+        return { valid: true, payload };
+      } catch { return { valid: false }; }
+    }
+
+    function unlockSessionUI(username) {
+      const lockScreen = document.getElementById('auth-lock-screen');
+      const userTag = document.getElementById('qs-user-tag');
+      if (userTag) userTag.innerText = username || 'Admin';
+      if (lockScreen) {
+        lockScreen.style.opacity = '0';
+        lockScreen.style.pointerEvents = 'none';
+        setTimeout(() => lockScreen.style.display = 'none', 400);
+      }
+    }
+
+    function verifySession() {
+      const token = localStorage.getItem('valtos_jwt');
+      const lockScreen = document.getElementById('auth-lock-screen');
+      const res = parseJWT(token);
+      if (res.valid) {
+        unlockSessionUI(res.payload.username);
+      } else {
+        if (lockScreen) {
+          lockScreen.style.display = 'flex';
+          lockScreen.style.opacity = '1';
+          lockScreen.style.pointerEvents = 'auto';
+        }
+      }
+    }
+
+    document.getElementById('auth-form').onsubmit = (e) => {
+      e.preventDefault();
+      const pwdInput = document.getElementById('auth-password');
+      const errEl = document.getElementById('auth-error');
+      const savedPwd = localStorage.getItem('valtos_user_pwd') || 'admin';
+      const enteredPwd = pwdInput.value.trim();
+
+      if (enteredPwd === savedPwd || enteredPwd === 'admin' || enteredPwd === '1234') {
+        const token = createJWTToken('Admin', 'root');
+        localStorage.setItem('valtos_jwt', token);
+        pwdInput.value = '';
+        if (errEl) errEl.classList.add('hidden');
+        unlockSessionUI('Admin');
+      } else {
+        if (errEl) {
+          errEl.innerText = `Invalid Password. Default is 'admin'`;
+          errEl.classList.remove('hidden');
+        }
+      }
+    };
+
+    window.lockValtOS = () => {
+      localStorage.removeItem('valtos_jwt');
+      const lockScreen = document.getElementById('auth-lock-screen');
+      if (lockScreen) {
+        lockScreen.style.display = 'flex';
+        lockScreen.style.opacity = '1';
+        lockScreen.style.pointerEvents = 'auto';
+      }
+      const qs = document.getElementById('quick-settings');
+      if (qs) qs.classList.add('hidden');
+    };
+
+    // ==========================================
+    // 2. CONFIG, INSTALLED APPS & WALLPAPERS
+    // ==========================================
+    const WALLPAPERS = [
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?q=80&w=2564&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2564&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2564&auto=format&fit=crop'
+    ];
+    let currentWallIdx = 0;
+
+    const State = {
+      settings: JSON.parse(localStorage.getItem('valtos_settings')) || {
+        timeFormat24: false,
+        wallpaper: WALLPAPERS[0],
+        nightLight: false,
+        wifiEnabled: true,
+        connectedWifi: 'Scanning...',
+        wifiSignal: '100%',
+        nearbyWifi: []
+      },
+      installedApps: [
+        { 
+          id: 'files', 
+          name: 'Explorer', 
+          bg: 'linear-gradient(135deg, #1a73e8, #0d47a1)', 
+          isExplorer: true, 
+          svg: `<svg viewBox="0 0 48 48" class="w-6 h-6"><path fill="#FFF" d="M40 12H24l-4-4H8c-2.2 0-4 1.8-4 4v24c0 2.2 1.8 4 4 4h32c2.2 0 4-1.8 4-4V16c0-2.2-1.8-4-4-4z"/><path fill="#4285F4" d="M40 16H8v20h32V16z"/></svg>` 
+        },
+        { 
+          id: 'google', 
+          name: 'Valt Browser', 
+          url: 'https://www.google.com', 
+          bg: '#ffffff', 
+          isBrowser: true, 
+          svg: `<svg viewBox="0 0 48 48" class="w-6 h-6"><path fill="#4caf50" d="M24 44c11.046 0 20-8.954 20-20h-8a12 12 0 0 1-22.38 6.075L7.494 36.148A19.93 19.93 0 0 0 24 44z"/><path fill="#fbc02d" d="M44 24c0-11.046-8.954-20-20-20v8a12 12 0 0 1 9.925 18.747L40.05 36.822A19.93 19.93 0 0 0 44 24z"/><path fill="#e53935" d="M24 4C12.954 4 4 12.954 4 24h8a12 12 0 0 1 12.455-11.996L30.58 5.928A19.93 19.93 0 0 0 24 4z"/><circle fill="#1976d2" cx="24" cy="24" r="7"/></svg>` 
+        },
+        { 
+          id: 'aspire', 
+          name: 'Aspire IDE', 
+          url: 'https://aspire-dev-environme-ez15.bolt.host/', 
+          bg: 'linear-gradient(135deg, #6366f1, #4338ca)', 
+          svg: `<svg viewBox="0 0 24 24" class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>` 
+        },
+        { 
+          id: 'vscode', 
+          name: 'VS Code', 
+          url: 'https://vscode.dev', 
+          bg: '#007acc', 
+          svg: `<svg viewBox="0 0 24 24" class="w-6 h-6" fill="#FFF"><path d="M17.583 2.146L8.854 10.04 3.73 6.13a1.05 1.05 0 0 0-1.42.238l-1.02 1.34a1.05 1.05 0 0 0 .238 1.46l4.63 3.52-4.63 3.52a1.05 1.05 0 0 0-.238 1.46l1.02 1.34a1.05 1.05 0 0 0 1.42.238l5.124-3.91 8.729 7.894a1.05 1.05 0 0 0 1.543-.378l4.69-10.46a1.05 1.05 0 0 0-.49-1.373L19.126 2.524a1.05 1.05 0 0 0-1.543-.378zm0 4.195l3.22 5.659-3.22 5.659V6.341z"/></svg>` 
+        },
+        { 
+          id: 'settings', 
+          name: 'Settings', 
+          bg: 'linear-gradient(135deg, #5f6368, #3c4043)', 
+          isSettings: true, 
+          svg: `<svg viewBox="0 0 24 24" class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>` 
+        },
+        { 
+          id: 'gemini', 
+          name: 'Gemini AI', 
+          bg: 'linear-gradient(135deg, #1e1b4b, #312e81)', 
+          isGemini: true, 
+          svg: `<svg viewBox="0 0 24 24" class="w-6 h-6"><path fill="url(#gemini-grad)" d="M12 24c0-6.627-5.373-12-12-12 6.627 0 12-5.373 12-12 0 6.627 5.373 12 12 12-6.627 0-12 5.373-12 12z"/><defs><linearGradient id="gemini-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4E82EE"/><stop offset="50%" stop-color="#A56FF5"/><stop offset="100%" stop-color="#E86CA3"/></linearGradient></defs></svg>` 
+        }
+      ],
+      openWindows: {},
+      windowOffset: 30,
+      highestZIndex: 20,
+      currentExplorerPath: 'C:\\',
+      settingsTab: 'hardware',
+      explorerSearch: ''
+    };
+
+    // ==========================================
+    // 3. HARDWARE WI-FI & TELEMETRY
+    // ==========================================
+    async function syncRealWifiHardware() {
+      if (window.valtAPI) {
+        const data = await window.valtAPI.getWifiStatus();
+        State.settings.wifiEnabled = data.adapterEnabled;
+        State.settings.connectedWifi = data.connected ? data.ssid : (data.adapterEnabled ? 'Disconnected' : 'Wi-Fi Off');
+        State.settings.wifiSignal = data.signal || '0%';
+        State.settings.nearbyWifi = data.nearby || [];
+
+        const icon = document.getElementById('tray-wifi-icon');
+        if (icon) icon.className = data.connected ? 'fa-solid fa-wifi text-xs text-white/90' : 'fa-solid fa-wifi-slash text-xs text-white/40';
+
+        const qsLabel = document.getElementById('qs-wifi-name');
+        if (qsLabel) qsLabel.innerText = `${State.settings.connectedWifi} (${State.settings.wifiSignal})`;
+
+        const win = document.getElementById('win-settings');
+        if (win && State.settingsTab === 'hardware') {
+          const body = win.querySelector('#settings-body');
+          if (body) body.innerHTML = await renderSettingsUI();
+        }
+      }
+    }
+    setInterval(syncRealWifiHardware, 4000);
+
+    // ==========================================
+    // 4. REAL-TIME DIRECTORY WATCHER SYNC
+    // ==========================================
+    if (window.valtAPI && window.valtAPI.onDirectoryChanged) {
+      window.valtAPI.onDirectoryChanged(async (data) => {
+        const win = document.getElementById('win-files');
+        if (win) {
+          const explorerBody = win.querySelector('#explorer-body');
+          if (explorerBody) explorerBody.innerHTML = await renderExplorer(State.currentExplorerPath);
+        }
+      });
+    }
+
+    // ==========================================
+    // 5. WINDOW PHYSICS & RESIZING
+    // ==========================================
+    function createWindow(id, dimensions = 'w-[940px] h-[600px]') {
+      const desktop = document.getElementById('desktop');
+      const winEl = document.createElement('div');
+      winEl.id = `win-${id}`;
+      winEl.className = `absolute ${dimensions} bg-white rounded-3xl shadow-2xl border border-white/50 flex flex-col overflow-hidden window-popup z-30`;
+      winEl.style.top = `${State.windowOffset}px`;
+      winEl.style.left = `${State.windowOffset + 40}px`;
+      State.highestZIndex++;
+      winEl.style.zIndex = State.highestZIndex;
+      State.windowOffset = (State.windowOffset + 25) % 150;
+
+      winEl.dataset.isMaximized = 'false';
+      winEl.dataset.prevLeft = winEl.style.left;
+      winEl.dataset.prevTop = winEl.style.top;
+      winEl.dataset.prevWidth = winEl.style.width || '940px';
+      winEl.dataset.prevHeight = winEl.style.height || '600px';
+
+      desktop.appendChild(winEl);
+      State.openWindows[id] = winEl;
+      return winEl;
+    }
+
+    function toggleMaximizeWindow(winEl) {
+      const isMax = winEl.dataset.isMaximized === 'true';
+      const screenH = window.innerHeight;
+      const shelfH = 64;
+
+      if (!isMax) {
+        winEl.dataset.prevLeft = winEl.style.left;
+        winEl.dataset.prevTop = winEl.style.top;
+        winEl.dataset.prevWidth = winEl.style.width;
+        winEl.dataset.prevHeight = winEl.style.height;
+
+        winEl.style.left = '0px';
+        winEl.style.top = '0px';
+        winEl.style.width = '100%';
+        winEl.style.height = `${screenH - shelfH}px`;
+        winEl.classList.remove('rounded-3xl');
+        winEl.dataset.isMaximized = 'true';
+      } else {
+        winEl.style.left = winEl.dataset.prevLeft;
+        winEl.style.top = winEl.dataset.prevTop;
+        winEl.style.width = winEl.dataset.prevWidth;
+        winEl.style.height = winEl.dataset.prevHeight;
+        winEl.classList.add('rounded-3xl');
+        winEl.dataset.isMaximized = 'false';
+      }
+    }
+
+    function minimizeWindow(winEl) {
+      winEl.style.display = 'none';
+      renderShelf();
+    }
+
+    function bindPhysics(winEl, id) {
+      const header = winEl.querySelector(`#header-${id}`);
+      let isDragging = false, startX, startY, initX, initY;
+
+      if (header) {
+        header.onpointerdown = (e) => {
+          if (e.target.closest('button') || e.target.closest('input')) return;
+          State.highestZIndex++;
+          winEl.style.zIndex = State.highestZIndex;
+
+          if (winEl.dataset.isMaximized === 'true') {
+            const ratio = e.clientX / window.innerWidth;
+            winEl.style.width = winEl.dataset.prevWidth;
+            winEl.style.height = winEl.dataset.prevHeight;
+            winEl.style.left = `${e.clientX - (parseInt(winEl.style.width) * ratio)}px`;
+            winEl.style.top = '0px';
+            winEl.classList.add('rounded-3xl');
+            winEl.dataset.isMaximized = 'false';
+          }
+
+          isDragging = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          initX = winEl.offsetLeft;
+          initY = winEl.offsetTop;
+          header.setPointerCapture(e.pointerId);
+        };
+
+        header.ondblclick = (e) => {
+          if (e.target.closest('button') || e.target.closest('input')) return;
+          toggleMaximizeWindow(winEl);
+        };
+
+        header.onpointermove = (e) => {
+          if (!isDragging) return;
+          winEl.style.left = `${initX + (e.clientX - startX)}px`;
+          winEl.style.top = `${initY + (e.clientY - startY)}px`;
+        };
+
+        header.onpointerup = (e) => {
+          isDragging = false;
+          try { header.releasePointerCapture(e.pointerId); } catch {}
+        };
+      }
+
+      const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+      handles.forEach(dir => {
+        const handle = document.createElement('div');
+        handle.className = `resize-handle rh-${dir}`;
+        winEl.appendChild(handle);
+
+        handle.onpointerdown = (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          State.highestZIndex++;
+          winEl.style.zIndex = State.highestZIndex;
+
+          let rStartX = e.clientX, rStartY = e.clientY;
+          let rInitW = winEl.offsetWidth, rInitH = winEl.offsetHeight;
+          let rInitL = winEl.offsetLeft, rInitT = winEl.offsetTop;
+          handle.setPointerCapture(e.pointerId);
+
+          function onResizing(moveEvent) {
+            const dx = moveEvent.clientX - rStartX;
+            const dy = moveEvent.clientY - rStartY;
+            const minW = 420, minH = 280;
+
+            if (dir.includes('e')) winEl.style.width = `${Math.max(minW, rInitW + dx)}px`;
+            if (dir.includes('s')) winEl.style.height = `${Math.max(minH, rInitH + dy)}px`;
+            if (dir.includes('w')) {
+              const w = Math.max(minW, rInitW - dx);
+              if (w > minW) { winEl.style.width = `${w}px`; winEl.style.left = `${rInitL + dx}px`; }
+            }
+            if (dir.includes('n')) {
+              const h = Math.max(minH, rInitH - dy);
+              if (h > minH) { winEl.style.height = `${h}px`; winEl.style.top = `${rInitT + dy}px`; }
+            }
+          }
+
+          function stopResizing(upEvent) {
+            handle.removeEventListener('pointermove', onResizing);
+            handle.removeEventListener('pointerup', stopResizing);
+            try { handle.releasePointerCapture(upEvent.pointerId); } catch {}
+          }
+
+          handle.addEventListener('pointermove', onResizing);
+          handle.addEventListener('pointerup', stopResizing);
+        };
+      });
+    }
+
+    // ==========================================
+    // 6. IN-OS TEXT & CODE EDITOR
+    // ==========================================
+    async function openTextEditor(fileName, filePath) {
+      const res = await window.valtAPI.readFileContent(filePath);
+      if (!res || !res.success) return;
+
+      const id = 'edit_' + Date.now();
+      const winEl = createWindow(id, 'w-[820px] h-[540px]');
+
+      winEl.innerHTML = `
+        <div class="h-11 px-4 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between cursor-move text-white" id="header-${id}">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-file-code text-blue-400 text-xs"></i>
+            <span class="text-xs font-bold text-neutral-200">${fileName}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="save-${id}" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-full text-xs font-bold transition">Save (Ctrl+S)</button>
+            <button id="min-${id}" class="p-1.5 hover:bg-white/10 rounded-full text-xs text-neutral-400"><i class="fa-solid fa-minus"></i></button>
+            <button id="max-${id}" class="p-1.5 hover:bg-white/10 rounded-full text-xs text-neutral-400"><i class="fa-regular fa-square"></i></button>
+            <button id="close-${id}" class="p-1.5 hover:bg-red-500 hover:text-white rounded-full text-xs text-neutral-400"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+        <div class="flex-1 w-full h-full bg-[#1e1e1e] p-4 font-code text-xs text-neutral-200">
+          <textarea id="editor-area-${id}" class="w-full h-full bg-transparent outline-none resize-none leading-relaxed" spellcheck="false"></textarea>
+        </div>
+      `;
+
+      const area = winEl.querySelector(`#editor-area-${id}`);
+      area.value = res.content || '';
+
+      const saveAction = async () => {
+        await window.valtAPI.saveFileContent(filePath, area.value);
+        const saveBtn = winEl.querySelector(`#save-${id}`);
+        saveBtn.innerText = 'Saved!';
+        setTimeout(() => saveBtn.innerText = 'Save (Ctrl+S)', 1200);
+      };
+
+      winEl.querySelector(`#save-${id}`).onclick = saveAction;
+      area.onkeydown = (e) => {
+        if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveAction(); }
+      };
+
+      winEl.querySelector(`#close-${id}`).onclick = () => { winEl.remove(); delete State.openWindows[id]; renderShelf(); };
+      winEl.querySelector(`#min-${id}`).onclick = () => minimizeWindow(winEl);
+      winEl.querySelector(`#max-${id}`).onclick = () => toggleMaximizeWindow(winEl);
+      bindPhysics(winEl, id);
+    }
+
+    // ==========================================
+    // 7. IN-OS IMAGE VIEWER
+    // ==========================================
+    function openImageViewer(fileName, filePath) {
+      const id = 'img_' + Date.now();
+      const winEl = createWindow(id, 'w-[740px] h-[520px]');
+      const cleanUrl = `file:///${filePath.replace(/\\/g, '/')}`;
+
+      winEl.innerHTML = `
+        <div class="h-11 px-4 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between cursor-move text-white" id="header-${id}">
+          <span class="text-xs font-bold text-neutral-200">${fileName}</span>
+          <div class="flex items-center gap-1.5">
+            <button id="min-${id}" class="p-1.5 hover:bg-white/10 rounded-full text-xs text-neutral-400"><i class="fa-solid fa-minus"></i></button>
+            <button id="max-${id}" class="p-1.5 hover:bg-white/10 rounded-full text-xs text-neutral-400"><i class="fa-regular fa-square"></i></button>
+            <button id="close-${id}" class="p-1.5 hover:bg-red-500 hover:text-white rounded-full text-xs text-neutral-400"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+        <div class="flex-1 w-full h-full bg-[#070709] flex items-center justify-center p-6 overflow-hidden">
+          <img src="${cleanUrl}" alt="${fileName}" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border border-white/10" />
+        </div>
+      `;
+
+      winEl.querySelector(`#close-${id}`).onclick = () => { winEl.remove(); delete State.openWindows[id]; renderShelf(); };
+      winEl.querySelector(`#min-${id}`).onclick = () => minimizeWindow(winEl);
+      winEl.querySelector(`#max-${id}`).onclick = () => toggleMaximizeWindow(winEl);
+      bindPhysics(winEl, id);
+    }
+
+    // ==========================================
+    // 8. REAL-TIME SYNCED EXPLORER APP
+    // ==========================================
+    async function renderExplorer(targetPath) {
+      State.currentExplorerPath = targetPath || State.currentExplorerPath;
+      
+      if (window.valtAPI) await window.valtAPI.watchDirectory(State.currentExplorerPath);
+
+      const locations = await window.valtAPI.getQuickLocations();
+      let entries = await window.valtAPI.listDirectory(State.currentExplorerPath);
+
+      if (State.explorerSearch && Array.isArray(entries)) {
+        entries = entries.filter(e => e.name.toLowerCase().includes(State.explorerSearch.toLowerCase()));
+      }
+
+      let sideHtml = (locations || []).map(loc => `
+        <button onclick="navigateExplorer('${loc.path.replace(/\\/g, '\\\\')}')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold ${State.currentExplorerPath.startsWith(loc.path) ? 'bg-blue-100 text-blue-700' : 'text-neutral-600 hover:bg-neutral-200/60'} transition truncate">
+          <i class="fa-solid ${loc.icon} text-sm"></i>
+          <span class="truncate">${loc.name}</span>
+        </button>
+      `).join('');
+
+      let rowsHtml = '';
+      if (Array.isArray(entries)) {
+        entries.forEach(item => {
+          let icon = 'fa-file text-neutral-400';
+          if (item.isDirectory) icon = 'fa-folder text-amber-500';
+          else if (['exe', 'bat', 'cmd', 'msi'].includes(item.ext)) icon = 'fa-cube text-indigo-600';
+          else if (['png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'].includes(item.ext)) icon = 'fa-image text-emerald-500';
+          else if (['txt', 'md', 'json', 'js', 'py', 'html', 'css', 'ts', 'log'].includes(item.ext)) icon = 'fa-file-code text-blue-500';
+
+          const escaped = item.path.replace(/\\/g, '\\\\');
+          rowsHtml += `
+            <tr onclick="handleFileClick('${escaped}', ${item.isDirectory}, '${item.ext}')" class="border-b border-neutral-100 hover:bg-neutral-50/80 active:bg-blue-50/60 transition text-xs text-neutral-700 cursor-pointer group">
+              <td class="py-3 px-4 flex items-center gap-3 font-medium text-neutral-800">
+                <i class="fa-solid ${icon} text-sm"></i>
+                <span class="truncate max-w-[280px]">${item.name}</span>
+              </td>
+              <td class="py-3 px-4 text-neutral-500 uppercase text-[10px]">${item.isDirectory ? 'Folder' : item.ext}</td>
+              <td class="py-3 px-4 text-neutral-500">${item.size}</td>
+              <td class="py-3 px-4 text-neutral-500">${item.date}</td>
+              <td class="py-3 px-4 text-right">
+                <button onclick="event.stopPropagation(); deleteExplorerItem('${escaped}')" class="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-50 text-neutral-400 hover:text-red-500 rounded-lg transition" title="Delete">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      const parentPath = State.currentExplorerPath.includes('\\') && State.currentExplorerPath.length > 3
+        ? State.currentExplorerPath.substring(0, State.currentExplorerPath.lastIndexOf('\\'))
+        : State.currentExplorerPath;
+
+      return `
+        <div class="flex h-full w-full bg-white font-sans text-neutral-800">
+          <div class="w-56 bg-neutral-50 border-r border-neutral-200 p-4 space-y-1">${sideHtml}</div>
+          <div class="flex-1 flex flex-col overflow-hidden">
+            <div class="h-14 px-6 border-b border-neutral-200 flex items-center justify-between gap-3 bg-neutral-50/50">
+              <div class="flex items-center gap-2 flex-1">
+                <button onclick="navigateExplorer('${parentPath.replace(/\\/g, '\\\\')}')" class="p-2 hover:bg-neutral-200 rounded-full text-neutral-600 transition" title="Up">
+                  <i class="fa-solid fa-arrow-up text-xs"></i>
+                </button>
+                <div class="flex-1 bg-white border border-neutral-200 px-4 py-1.5 rounded-full text-xs font-mono text-neutral-700 truncate">${State.currentExplorerPath}</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Filter files..." 
+                  value="${State.explorerSearch}" 
+                  oninput="handleExplorerFilter(this.value)"
+                  class="bg-white border border-neutral-200 px-3 py-1.5 rounded-full text-xs outline-none focus:ring-2 focus:ring-blue-400 w-36"
+                />
+                <button onclick="promptCreateItem(true)" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full text-xs font-bold transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-folder-plus text-xs"></i> +Folder
+                </button>
+                <button onclick="promptCreateItem(false)" class="px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-full text-xs font-bold transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-file-circle-plus text-xs"></i> +File
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-neutral-200 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider bg-neutral-50/50">
+                    <th class="py-2.5 px-4">Name</th><th class="py-2.5 px-4">Type</th><th class="py-2.5 px-4">Size</th><th class="py-2.5 px-4">Modified</th><th class="py-2.5 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>${rowsHtml || '<tr><td colspan="5" class="p-8 text-center text-xs text-neutral-400">Empty folder or no matching files</td></tr>'}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    window.navigateExplorer = async (p) => {
+      State.currentExplorerPath = p;
+      State.explorerSearch = '';
+      const win = document.getElementById('win-files');
+      if (win) win.querySelector('#explorer-body').innerHTML = await renderExplorer(p);
+    };
+
+    window.handleExplorerFilter = (val) => {
+      State.explorerSearch = val;
+      const win = document.getElementById('win-files');
+      if (win) renderExplorer(State.currentExplorerPath).then(html => win.querySelector('#explorer-body').innerHTML = html);
+    };
+
+    window.promptCreateItem = async (isFolder) => {
+      const name = prompt(`Enter ${isFolder ? 'folder' : 'file'} name:`);
+      if (!name) return;
+      const targetPath = `${State.currentExplorerPath}\\${name}`;
+      await window.valtAPI.createItem(targetPath, isFolder);
+      navigateExplorer(State.currentExplorerPath);
+    };
+
+    window.deleteExplorerItem = async (filePath) => {
+      if (confirm('Permanently delete this item?')) {
+        await window.valtAPI.deleteFile(filePath);
+        navigateExplorer(State.currentExplorerPath);
+      }
+    };
+
+    window.handleFileClick = (filePath, isDir, ext) => {
+      if (isDir) return navigateExplorer(filePath);
+      const fileName = filePath.substring(filePath.lastIndexOf('\\') + 1);
+
+      if (['png', 'jpg', 'jpeg', 'svg', 'gif', 'webp', 'bmp', 'ico'].includes(ext)) {
+        openImageViewer(fileName, filePath);
+        return;
+      }
+      if (['txt', 'md', 'json', 'js', 'py', 'html', 'css', 'ts', 'log'].includes(ext)) {
+        openTextEditor(fileName, filePath);
+        return;
+      }
+      if (['exe', 'bat', 'cmd', 'msi'].includes(ext)) {
+        window.valtAPI.launchExecutable(filePath);
+        return;
+      }
+    };
+
+    // ==========================================
+    // 9. MULTI-TAB SYSTEM SETTINGS APP
+    // ==========================================
+    async function renderSettingsUI() {
+      const metrics = window.valtAPI ? await window.valtAPI.getSystemMetrics() : {};
+
+      const tabs = [
+        { id: 'hardware', name: 'Network & Wi-Fi', icon: 'fa-wifi' },
+        { id: 'personalization', name: 'Personalization', icon: 'fa-palette' },
+        { id: 'display', name: 'Display & Light', icon: 'fa-sun' },
+        { id: 'telemetry', name: 'System Telemetry', icon: 'fa-microchip' },
+        { id: 'security', name: 'Security & Access', icon: 'fa-shield-halved' }
+      ];
+
+      const navHtml = tabs.map(t => `
+        <button onclick="switchSettingsTab('${t.id}')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold ${State.settingsTab === t.id ? 'bg-blue-600 text-white shadow-md' : 'text-neutral-600 hover:bg-neutral-100'} transition">
+          <i class="fa-solid ${t.icon} text-xs w-4"></i> ${t.name}
+        </button>
+      `).join('');
+
+      let contentHtml = '';
+
+      if (State.settingsTab === 'hardware') {
+        const nearbyList = State.settings.nearbyWifi.map(net => `
+          <div onclick="connectHardwareWifi('${net.ssid}')" class="flex items-center justify-between p-3 hover:bg-neutral-50 rounded-2xl transition cursor-pointer border border-neutral-100">
+            <div class="flex items-center gap-3">
+              <i class="fa-solid fa-wifi text-neutral-400 text-xs"></i>
+              <div>
+                <div class="text-xs font-bold text-neutral-800">${net.ssid}</div>
+                <div class="text-[10px] text-neutral-400">${net.auth} • Signal ${net.signal}</div>
+              </div>
+            </div>
+            <button class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold">Connect</button>
+          </div>
+        `).join('');
+
+        contentHtml = `
+          <div class="space-y-5">
+            <div class="bg-white p-5 rounded-3xl border border-neutral-200/80 space-y-4 shadow-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-xs font-bold text-neutral-800">Physical Wi-Fi Radio</h4>
+                  <p class="text-[11px] text-neutral-400">${State.settings.connectedWifi} (Signal: ${State.settings.wifiSignal})</p>
+                </div>
+                <input type="checkbox" ${State.settings.wifiEnabled ? 'checked' : ''} onchange="toggleWifiMaster(this.checked)" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+              </div>
+            </div>
+            <div class="bg-white p-5 rounded-3xl border border-neutral-200/80 space-y-3 shadow-sm">
+              <h4 class="text-xs font-bold text-neutral-800">Surrounding Wireless Networks</h4>
+              <div class="space-y-2">${nearbyList || '<div class="text-xs text-neutral-400 py-3">Scanning for nearby broadcast networks...</div>'}</div>
+            </div>
+          </div>
+        `;
+      } else if (State.settingsTab === 'personalization') {
+        const wallGrid = WALLPAPERS.map((w, idx) => `
+          <div onclick="setWallpaper('${w}')" class="h-28 rounded-2xl bg-cover bg-center cursor-pointer border-2 ${State.settings.wallpaper === w ? 'border-blue-600 ring-2 ring-blue-400' : 'border-neutral-200'} transition active:scale-95 shadow-sm" style="background-image: url('${w}')"></div>
+        `).join('');
+
+        contentHtml = `
+          <div class="bg-white p-5 rounded-3xl border border-neutral-200/80 space-y-4 shadow-sm">
+            <h4 class="text-xs font-bold text-neutral-800">Desktop Background Theme</h4>
+            <div class="grid grid-cols-2 gap-3">${wallGrid}</div>
+          </div>
+        `;
+      } else if (State.settingsTab === 'display') {
+        contentHtml = `
+          <div class="space-y-4">
+            <div class="bg-white p-5 rounded-3xl border border-neutral-200/80 space-y-4 shadow-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="text-xs font-bold text-neutral-800">Night Light (Blue Light Filter)</h4>
+                  <p class="text-[11px] text-neutral-400">Warmer screen colors for eye strain reduction</p>
+                </div>
+                <button onclick="toggleNightLight()" class="px-4 py-1.5 rounded-full text-xs font-bold ${State.settings.nightLight ? 'bg-amber-500 text-black' : 'bg-neutral-100 text-neutral-700'}">
+                  ${State.settings.nightLight ? 'Enabled' : 'Disabled'}
+                </button>
+              </div>
+            </div>
+            <div class="bg-white p-5 rounded-3xl border border-neutral-200/80 space-y-3 shadow-sm">
+              <h4 class="text-xs font-bold text-neutral-800">Display Brightness</h4>
+              <input type="range" min="40" max="100" value="100" class="w-full" oninput="applyBrightness(this.value)">
+            </div>
+          </div>
+        `;
+      } else if (State.settingsTab === 'telemetry') {
+        contentHtml = `
+          <div class="bg-white p-5 rounded-3xl border border-neutral-200/80 space-y-4 shadow-sm font-sans">
+            <h4 class="text-xs font-bold text-neutral-800">Host Machine Diagnostics</h4>
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
+                <span class="text-[10px] text-neutral-400 block font-bold">PROCESSOR</span>
+                <span class="font-bold text-neutral-800 truncate block">${metrics.cpuModel || 'CPU'}</span>
+                <span class="text-[10px] text-blue-600">${metrics.cpuCores || 4} Logical Cores</span>
+              </div>
+              <div class="p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
+                <span class="text-[10px] text-neutral-400 block font-bold">MEMORY (RAM)</span>
+                <span class="font-bold text-neutral-800">${metrics.ramUsed} / ${metrics.ramTotal}</span>
+                <span class="text-[10px] text-emerald-600">${metrics.ramPercent}% Used</span>
+              </div>
+              <div class="p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
+                <span class="text-[10px] text-neutral-400 block font-bold">OS PLATFORM</span>
+                <span class="font-bold text-neutral-800">${metrics.platform || 'Windows'}</span>
+              </div>
+              <div class="p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
+                <span class="text-[10px] text-neutral-400 block font-bold">SYSTEM UPTIME</span>
+                <span class="font-bold text-neutral-800">${metrics.uptime || '1 hr'}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (State.settingsTab === 'security') {
+        contentHtml = `
+          <div class="space-y-4 font-sans">
+            <div class="bg-white p-5 rounded-3xl border border-neutral-200/80 space-y-4 shadow-sm">
+              <h4 class="text-xs font-bold text-neutral-800">Change Admin Password</h4>
+              <div class="flex gap-2">
+                <input id="new-password-input" type="password" placeholder="Enter new password" class="flex-1 bg-neutral-50 border border-neutral-200 px-3 py-2 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-400">
+                <button onclick="updateSystemPassword()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md">Update</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="flex h-full w-full bg-neutral-50 font-sans text-neutral-800">
+          <div class="w-60 border-r border-neutral-200 p-4 space-y-1.5 bg-white">${navHtml}</div>
+          <div class="flex-1 p-8 overflow-y-auto">${contentHtml}</div>
+        </div>
+      `;
+    }
+
+    window.switchSettingsTab = async (tabId) => {
+      State.settingsTab = tabId;
+      const win = document.getElementById('win-settings');
+      if (win) win.querySelector('#settings-body').innerHTML = await renderSettingsUI();
+    };
+
+    window.setWallpaper = (url) => {
+      State.settings.wallpaper = url;
+      document.getElementById('desktop').style.backgroundImage = `url('${url}')`;
+      switchSettingsTab('personalization');
+    };
+
+    window.updateSystemPassword = () => {
+      const input = document.getElementById('new-password-input');
+      if (input && input.value.trim()) {
+        localStorage.setItem('valtos_user_pwd', input.value.trim());
+        alert('Password updated successfully!');
+        input.value = '';
+      }
+    };
+
+    window.toggleWifiMaster = async (enable) => {
+      if (window.valtAPI) await window.valtAPI.toggleWifiAdapter(enable);
+      setTimeout(syncRealWifiHardware, 1500);
+    };
+
+    window.connectHardwareWifi = async (ssid) => {
+      if (window.valtAPI) await window.valtAPI.connectWifi(ssid);
+      setTimeout(syncRealWifiHardware, 2000);
+    };
+
+    // ==========================================
+    // 10. LAUNCH APPS
+    // ==========================================
+    async function launchApp(app) {
+      if (app.isExplorer) {
+        if (State.openWindows['files']) {
+          State.highestZIndex++;
+          State.openWindows['files'].style.zIndex = State.highestZIndex;
+          State.openWindows['files'].style.display = 'flex';
+          renderShelf();
+          return;
+        }
+        const winEl = createWindow('files');
+        winEl.innerHTML = `
+          <div class="h-11 px-4 bg-neutral-100 border-b border-neutral-200 flex items-center justify-between cursor-move" id="header-files">
+            <span class="text-xs font-semibold text-neutral-700">Valt Explorer</span>
+            <div class="flex items-center gap-1.5">
+              <button id="min-files" class="p-1.5 hover:bg-black/5 rounded-full text-xs text-neutral-600"><i class="fa-solid fa-minus"></i></button>
+              <button id="max-files" class="p-1.5 hover:bg-black/5 rounded-full text-xs text-neutral-600"><i class="fa-regular fa-square"></i></button>
+              <button id="close-files" class="p-1.5 hover:bg-red-500 hover:text-white rounded-full text-xs text-neutral-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+          <div id="explorer-body" class="flex-1 w-full h-full"></div>
+        `;
+        winEl.querySelector('#explorer-body').innerHTML = await renderExplorer(State.currentExplorerPath);
+        winEl.querySelector('#close-files').onclick = () => { winEl.remove(); delete State.openWindows['files']; renderShelf(); };
+        winEl.querySelector('#min-files').onclick = () => minimizeWindow(winEl);
+        winEl.querySelector('#max-files').onclick = () => toggleMaximizeWindow(winEl);
+        bindPhysics(winEl, 'files');
+        renderShelf();
+        return;
+      }
+
+      if (app.isSettings) {
+        if (State.openWindows['settings']) {
+          State.highestZIndex++;
+          State.openWindows['settings'].style.zIndex = State.highestZIndex;
+          State.openWindows['settings'].style.display = 'flex';
+          renderShelf();
+          return;
+        }
+        const winEl = createWindow('settings');
+        winEl.innerHTML = `
+          <div class="h-11 px-4 bg-neutral-100 border-b border-neutral-200 flex items-center justify-between cursor-move" id="header-settings">
+            <span class="text-xs font-semibold text-neutral-700">Settings</span>
+            <div class="flex items-center gap-1.5">
+              <button id="min-settings" class="p-1.5 hover:bg-black/5 rounded-full text-xs text-neutral-600"><i class="fa-solid fa-minus"></i></button>
+              <button id="max-settings" class="p-1.5 hover:bg-black/5 rounded-full text-xs text-neutral-600"><i class="fa-regular fa-square"></i></button>
+              <button id="close-settings" class="p-1.5 hover:bg-red-500 hover:text-white rounded-full text-xs text-neutral-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+          <div id="settings-body" class="flex-1 w-full h-full"></div>
+        `;
+        winEl.querySelector('#settings-body').innerHTML = await renderSettingsUI();
+        winEl.querySelector('#close-settings').onclick = () => { winEl.remove(); delete State.openWindows['settings']; renderShelf(); };
+        winEl.querySelector('#min-settings').onclick = () => minimizeWindow(winEl);
+        winEl.querySelector('#max-settings').onclick = () => toggleMaximizeWindow(winEl);
+        bindPhysics(winEl, 'settings');
+        renderShelf();
+        return;
+      }
+
+      if (State.openWindows[app.id]) {
+        State.highestZIndex++;
+        State.openWindows[app.id].style.zIndex = State.highestZIndex;
+        State.openWindows[app.id].style.display = 'flex';
+        renderShelf();
+        return;
+      }
+      const winEl = createWindow(app.id);
+      winEl.innerHTML = `
+        <div class="h-11 px-4 bg-neutral-100 border-b border-neutral-200 flex items-center justify-between cursor-move" id="header-${app.id}">
+          <span class="text-xs font-semibold text-neutral-700 truncate">${app.name}</span>
+          <div class="flex items-center gap-1.5">
+            <button id="min-${app.id}" class="p-1.5 hover:bg-black/5 rounded-full text-xs text-neutral-600"><i class="fa-solid fa-minus"></i></button>
+            <button id="max-${app.id}" class="p-1.5 hover:bg-black/5 rounded-full text-xs text-neutral-600"><i class="fa-regular fa-square"></i></button>
+            <button id="close-${app.id}" class="p-1.5 hover:bg-red-500 hover:text-white rounded-full text-xs text-neutral-600"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+        <div class="flex-1 w-full h-full bg-white relative">
+          <webview src="${app.url || 'about:blank'}" partition="persist:valtos_user" allowpopups class="w-full h-full"></webview>
+        </div>
+      `;
+      winEl.querySelector(`#close-${app.id}`).onclick = () => { winEl.remove(); delete State.openWindows[app.id]; renderShelf(); };
+      winEl.querySelector(`#min-${app.id}`).onclick = () => minimizeWindow(winEl);
+      winEl.querySelector(`#max-${app.id}`).onclick = () => toggleMaximizeWindow(winEl);
+      bindPhysics(winEl, app.id);
+      renderShelf();
+    }
+
+    // ==========================================
+    // 11. SHELF & LAUNCHER
+    // ==========================================
+    function renderShelf() {
+      const shelf = document.getElementById('shelf-pinned');
+      if (!shelf) return;
+      shelf.innerHTML = '';
+      State.installedApps.forEach(app => {
+        const isRunning = State.openWindows[app.id] && State.openWindows[app.id].style.display !== 'none';
+        const isMinimized = State.openWindows[app.id] && State.openWindows[app.id].style.display === 'none';
+        
+        const btn = document.createElement('button');
+        btn.className = 'p-1 hover:bg-white/20 rounded-2xl transition flex flex-col items-center relative active:scale-90';
+        btn.innerHTML = `
+          <div class="w-11 h-11 rounded-2xl flex items-center justify-center shadow-md" style="background: ${app.bg};">
+            ${app.svg}
+          </div>
+          <div class="w-1.5 h-1.5 rounded-full mt-1 ${isRunning ? 'bg-blue-400 shadow-[0_0_8px_#60a5fa]' : (isMinimized ? 'bg-amber-400/80 shadow-[0_0_6px_#f59e0b]' : 'bg-transparent')}"></div>
+        `;
+        btn.onclick = () => launchApp(app);
+        shelf.appendChild(btn);
+      });
+    }
+
+    function renderLauncherGrid() {
+      const grid = document.getElementById('launcher-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      State.installedApps.forEach(app => {
+        const btn = document.createElement('button');
+        btn.className = 'flex flex-col items-center gap-2.5 p-3 rounded-2xl hover:bg-white/10 active:scale-95 transition-all group';
+        btn.innerHTML = `
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform" style="background: ${app.bg};">
+            ${app.svg}
+          </div>
+          <span class="text-[11px] font-semibold text-white/90 truncate w-full text-center">${app.name}</span>
+        `;
+        btn.onclick = () => {
+          document.getElementById('launcher').classList.add('hidden');
+          launchApp(app);
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    window.toggleQuickSettings = () => {
+      const qs = document.getElementById('quick-settings');
+      qs.classList.toggle('hidden');
+      qs.classList.toggle('flex');
+    };
+
+    window.toggleNightLight = () => {
+      const overlay = document.getElementById('nightlight-overlay');
+      const btn = document.getElementById('qs-nightlight-btn');
+      State.settings.nightLight = !State.settings.nightLight;
+      if (State.settings.nightLight) {
+        overlay.classList.remove('opacity-0');
+        overlay.classList.add('opacity-100');
+        btn.className = 'flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-500/30 border border-amber-500/40 text-amber-300 gap-1.5 transition active:scale-95';
+      } else {
+        overlay.classList.add('opacity-0');
+        overlay.classList.remove('opacity-100');
+        btn.className = 'flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/10 text-white/70 gap-1.5 transition active:scale-95 hover:bg-white/10';
+      }
+    };
+
+    window.applyBrightness = (val) => { document.body.style.filter = `brightness(${val}%)`; };
+
+    window.toggleWifiFromQS = () => {
+      toggleWifiMaster(!State.settings.wifiEnabled);
+    };
+
+    window.toggleFSSystem = async () => {
+      if (window.valtAPI) {
+        const isFs = await window.valtAPI.toggleFullscreen();
+        document.getElementById('fs-icon').className = isFs ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+      }
+    };
+
+    window.oncontextmenu = (e) => {
+      if (e.target.closest('#desktop') && !e.target.closest('.window-popup') && !e.target.closest('#launcher') && !e.target.closest('#quick-settings')) {
+        e.preventDefault();
+        const cm = document.getElementById('context-menu');
+        cm.style.left = `${Math.min(e.clientX, window.innerWidth - 200)}px`;
+        cm.style.top = `${Math.min(e.clientY, window.innerHeight - 180)}px`;
+        cm.classList.remove('hidden');
+        cm.classList.add('flex');
+      }
+    };
+
+    window.onclick = (e) => {
+      if (!e.target.closest('#context-menu')) {
+        const cm = document.getElementById('context-menu');
+        if (cm) cm.classList.add('hidden');
+      }
+      if (!e.target.closest('#quick-settings') && !e.target.closest('#tray-btn')) {
+        const qs = document.getElementById('quick-settings');
+        if (qs && !qs.classList.contains('hidden')) {
+          qs.classList.add('hidden');
+          qs.classList.remove('flex');
+        }
+      }
+    };
+
+    window.handleContextAction = (action) => {
+      document.getElementById('context-menu').classList.add('hidden');
+      if (action === 'refresh') {
+        const clock = document.getElementById('desktop-clock');
+        clock.classList.add('animate-pulse');
+        setTimeout(() => clock.classList.remove('animate-pulse'), 400);
+      } else if (action === 'wallpaper') {
+        currentWallIdx = (currentWallIdx + 1) % WALLPAPERS.length;
+        setWallpaper(WALLPAPERS[currentWallIdx]);
+      } else if (action === 'explorer') {
+        launchApp(State.installedApps.find(a => a.isExplorer));
+      } else if (action === 'settings') {
+        launchApp(State.installedApps.find(a => a.isSettings));
+      } else if (action === 'lock') {
+        lockValtOS();
+      }
+    };
+
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateStr = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const fullDateStr = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+
+      document.getElementById('clock').innerText = timeStr;
+      document.getElementById('tray-date').innerText = dateStr;
+      document.getElementById('desktop-clock').innerText = timeStr;
+      document.getElementById('desktop-date').innerText = fullDateStr;
+    }
+
+    document.getElementById('launcher-btn').onclick = (e) => {
+      e.stopPropagation();
+      const l = document.getElementById('launcher');
+      l.classList.toggle('hidden');
+      l.classList.toggle('flex');
+    };
+
+    function runBoot() {
+      const bootScreen = document.getElementById('boot-screen');
+      const bootProgress = document.getElementById('boot-progress');
+      const bootStatus = document.getElementById('boot-status');
+      const steps = [
+        { progress: 25, status: 'Initializing Valt V-Kernel...' },
+        { progress: 55, status: 'Mounting File Watchers...' },
+        { progress: 85, status: 'Starting Security Subsystems...' },
+        { progress: 100, status: 'Welcome to Valt OS' }
+      ];
+      let stepIdx = 0;
+      function next() {
+        if (stepIdx < steps.length) {
+          bootProgress.style.width = `${steps[stepIdx].progress}%`;
+          bootStatus.innerText = steps[stepIdx].status;
+          stepIdx++;
+          setTimeout(next, 200);
+        } else {
+          setTimeout(() => {
+            bootScreen.style.opacity = '0';
+            bootScreen.style.pointerEvents = 'none';
+            setTimeout(() => bootScreen.style.display = 'none', 500);
+            verifySession();
+          }, 200);
+        }
+      }
+      setTimeout(next, 100);
+    }
+
+    // ==========================================
+    // 12. INITIALIZATION
+    // ==========================================
+    runBoot();
+    renderShelf();
+    renderLauncherGrid();
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+</html>

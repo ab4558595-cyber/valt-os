@@ -1,0 +1,55 @@
+{
+  "name": "valt-os",
+  "version": "1.0.0",
+  "description": "Valt OS - Next-Generation Desktop Shell & Cloud Environment",
+  "main": "main.js",
+  "author": "Valt Systems",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:portable": "electron-builder --win portable",
+    "build:installer": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.valtos.desktop",
+    "productName": "Valt OS",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "logo.png"
+    ],
+    "win": {
+      "icon": "logo.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Valt OS",
+      "differentialPackage": false,
+      "artifactName": "Valt-OS-Setup-v${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Valt-OS-Portable-v${version}.${ext}"
+    }
+  }
+}
