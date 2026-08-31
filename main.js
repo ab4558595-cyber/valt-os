@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2026 Valt Systems. All Rights Reserved.
+ *
+ * This software and source code are protected by international copyright laws.
+ * Unauthorized copying, decompilation, distribution, or reverse engineering
+ * of any part of this system is strictly prohibited.
+ */
+
+
+
 const { app, BrowserWindow, ipcMain, session, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
